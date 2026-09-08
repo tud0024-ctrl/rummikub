@@ -1,1 +1,675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>루미큐브 데일리 퍼즐</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Fraunces:wght@600;700&display=swap');
 
+  :root{
+    --felt: #10352b;
+    --felt-dark: #0a271f;
+    --wood: #6b3f24;
+    --wood-dark: #4d2c19;
+    --ivory: #f4ecd8;
+    --ivory-shadow: #cdbf9e;
+    --slot-empty: rgba(244,236,216,0.06);
+    --slot-border: rgba(244,236,216,0.22);
+    --red: #c0392b;
+    --blue: #1f5fa8;
+    --black: #1a1a1a;
+    --orange: #d9791b;
+    --ok: #4f9d69;
+    --bad: #c0392b;
+    --gold: #e8c86a;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at top, rgba(255,255,255,0.05), transparent 60%),
+      linear-gradient(180deg, var(--felt) 0%, var(--felt-dark) 100%);
+    font-family: 'Manrope', system-ui, sans-serif;
+    color: var(--ivory);
+    display:flex;
+    justify-content:center;
+    padding: 24px 14px 60px;
+  }
+
+  .app{
+    width:100%;
+    max-width: 860px;
+  }
+
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    border-bottom: 1px solid rgba(244,236,216,0.18);
+    padding-bottom:16px;
+    margin-bottom:16px;
+  }
+
+  header h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size: 2rem;
+    margin:0 0 4px;
+    letter-spacing: 0.2px;
+  }
+
+  header p.sub{
+    margin:0;
+    font-size:0.92rem;
+    color: rgba(244,236,216,0.6);
+  }
+
+  .timer-box{
+    text-align:right;
+  }
+
+  .timer-box .label{
+    font-size:0.78rem;
+    color: rgba(244,236,216,0.55);
+    margin-bottom:2px;
+  }
+
+  .timer-box .time{
+    font-family:'Fraunces', serif;
+    font-size: 2.1rem;
+    font-weight:700;
+    font-variant-numeric: tabular-nums;
+    line-height:1;
+  }
+
+  .stage-track{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .stage-pill{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid rgba(244,236,216,0.18);
+    background: rgba(0,0,0,0.15);
+    font-size:0.85rem;
+  }
+  .stage-pill .name{ font-weight:700; }
+  .stage-pill .t{ font-variant-numeric: tabular-nums; color: rgba(244,236,216,0.65); }
+  .stage-pill.active{ border-color: var(--gold); background: rgba(232,200,106,0.1); }
+  .stage-pill.done{ border-color: var(--ok); }
+  .stage-pill.done .t{ color: var(--ok); }
+  .stage-pill.locked{ opacity:0.4; }
+
+  .rules{
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(244,236,216,0.15);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size:0.88rem;
+    line-height:1.55;
+    color: rgba(244,236,216,0.82);
+    margin-bottom: 22px;
+  }
+  .rules b{ color: var(--ivory); }
+
+  .board{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:14px;
+    margin-bottom: 22px;
+  }
+
+  .group{
+    min-height: 76px;
+    background: var(--slot-empty);
+    border: 2px dashed var(--slot-border);
+    border-radius: 12px;
+    padding: 10px;
+    display:flex;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap:6px;
+    cursor:pointer;
+    transition: border-color .15s, background .15s;
+    position:relative;
+  }
+  .group:hover{ border-color: rgba(244,236,216,0.45); }
+  .group.selectable{ border-color: var(--gold); background: rgba(232,200,106,0.08); }
+  .group.valid{ border-style:solid; border-color: var(--ok); background: rgba(79,157,105,0.1); }
+  .group.invalid{ border-style:solid; border-color: var(--bad); background: rgba(192,57,43,0.1); }
+
+  .group .tag{
+    position:absolute;
+    top:-10px;
+    left:10px;
+    background: var(--felt-dark);
+    padding:0 6px;
+    font-size:0.68rem;
+    color: rgba(244,236,216,0.5);
+  }
+
+  .tile{
+    width:38px;
+    height:52px;
+    background: linear-gradient(180deg, var(--ivory) 0%, #e9ddc0 100%);
+    border-radius:6px;
+    box-shadow: 0 2px 0 var(--ivory-shadow), 0 3px 6px rgba(0,0,0,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:1.15rem;
+    cursor:pointer;
+    user-select:none;
+    transition: transform .1s;
+    flex-shrink:0;
+  }
+  .tile:active{ transform: scale(0.94); }
+  .tile.selected{
+    outline: 3px solid var(--gold);
+    outline-offset:1px;
+    transform: translateY(-4px);
+  }
+  .tile.red{ color: var(--red); }
+  .tile.blue{ color: var(--blue); }
+  .tile.black{ color: var(--black); }
+  .tile.orange{ color: var(--orange); }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom: 20px;
+  }
+
+  button{
+    font-family:'Manrope', sans-serif;
+    font-weight:700;
+    font-size:0.88rem;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(244,236,216,0.25);
+    background: rgba(244,236,216,0.08);
+    color: var(--ivory);
+    cursor:pointer;
+    transition: background .15s, transform .05s;
+  }
+  button:hover{ background: rgba(244,236,216,0.16); }
+  button:active{ transform: scale(0.97); }
+  button.primary{
+    background: var(--gold);
+    color: #3a2a0c;
+    border-color: var(--gold);
+  }
+  button.primary:hover{ background:#f0d585; }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .rack-label{
+    font-size:0.78rem;
+    color: rgba(244,236,216,0.55);
+    margin: 0 0 8px 2px;
+  }
+
+  .rack{
+    background: var(--wood);
+    background-image: linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 76px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  .status{
+    margin-top:18px;
+    padding: 14px 16px;
+    border-radius:10px;
+    font-size:0.92rem;
+    line-height:1.5;
+    display:none;
+  }
+  .status.show{ display:block; }
+  .status.ok{ background: rgba(79,157,105,0.18); border:1px solid var(--ok); }
+  .status.warn{ background: rgba(192,57,43,0.16); border:1px solid var(--bad); }
+
+  .summary{
+    display:none;
+    text-align:center;
+    padding: 40px 20px;
+    border: 1px solid rgba(244,236,216,0.18);
+    border-radius: 14px;
+    background: rgba(0,0,0,0.15);
+  }
+  .summary.show{ display:block; }
+  .summary h2{
+    font-family:'Fraunces', serif;
+    font-size:1.7rem;
+    margin:0 0 6px;
+  }
+  .summary p{ color: rgba(244,236,216,0.7); margin:0 0 24px; }
+  .summary .rows{
+    display:flex;
+    justify-content:center;
+    gap:28px;
+    flex-wrap:wrap;
+    margin-bottom:28px;
+  }
+  .summary .row .n{
+    font-size:0.8rem;
+    color: rgba(244,236,216,0.55);
+    margin-bottom:4px;
+  }
+  .summary .row .v{
+    font-family:'Fraunces', serif;
+    font-size:1.6rem;
+    font-weight:700;
+    font-variant-numeric: tabular-nums;
+  }
+  .summary .row.total .v{ color: var(--gold); }
+
+  @media (max-width: 480px){
+    .tile{ width:32px; height:44px; font-size:1rem; }
+    header h1{ font-size:1.5rem; }
+    .timer-box .time{ font-size:1.6rem; }
+    .stage-track{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>루미큐브 데일리 퍼즐</h1>
+      <p class="sub" id="dateLabel">오늘의 문제</p>
+    </div>
+    <div class="timer-box">
+      <div class="label" id="timerLabel">1단계 경과 시간</div>
+      <div class="time" id="timer">00:00</div>
+    </div>
+  </header>
+
+  <div class="stage-track" id="stageTrack"></div>
+
+  <div id="playArea">
+    <div class="rules">
+      타일을 눌러 선택한 뒤, 아래 <b>그룹 칸</b>을 눌러 옮겨 담으세요. 그룹 칸에 놓인 타일을 다시 누르면 받침대로 돌아옵니다.<br>
+      유효한 조합은 두 가지입니다 — <b>그룹</b>: 숫자가 같고 색이 모두 다른 타일 3~4장 / <b>런</b>: 색이 같고 숫자가 연속된 타일 3장 이상.<br>
+      단계가 올라갈수록 타일 수와 조합 난이도가 늘어납니다. 오늘 접속한 모든 사람에게 각 단계마다 같은 문제가 출제됩니다.
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="controls">
+      <button id="addGroupBtn">그룹 칸 추가</button>
+      <button id="resetBtn">받침대로 되돌리기</button>
+      <button id="checkBtn" class="primary">정답 확인</button>
+    </div>
+
+    <p class="rack-label">받침대</p>
+    <div class="rack" id="rack"></div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="summary" id="summary">
+    <h2>3단계 완료!</h2>
+    <p>오늘의 문제를 모두 풀었어요.</p>
+    <div class="rows" id="summaryRows"></div>
+    <button class="primary" id="restartBtn">다시 도전하기</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- seeded RNG ----------
+  function hashSeed(str){
+    let h = 1779033703 ^ str.length;
+    for (let i=0;i<str.length;i++){
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function(){
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return h >>> 0;
+    };
+  }
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  const today = new Date();
+  const dateKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  document.getElementById('dateLabel').textContent = dateKey + ' 문제';
+
+  const COLORS = ['red','blue','black','orange'];
+
+  // ---------- stage difficulty settings ----------
+  const STAGES = [
+    { name: '1단계 · 쉬움', minGroups: 3, maxGroups: 4, runLen: [3,4], groupSize: [3,3] },
+    { name: '2단계 · 보통', minGroups: 4, maxGroups: 5, runLen: [3,5], groupSize: [3,4] },
+    { name: '3단계 · 어려움', minGroups: 6, maxGroups: 7, runLen: [3,6], groupSize: [3,4] }
+  ];
+
+  function generatePuzzle(stageIndex){
+    const cfg = STAGES[stageIndex];
+    const rand = mulberry32(hashSeed('rummikub-' + dateKey + '-stage' + stageIndex)());
+    function randInt(min, max){ return Math.floor(rand()*(max-min+1))+min; }
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(rand()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    let tileId = 0;
+    const pool = [];
+    const counts = {};
+    const canUse = (c,n) => (counts[c+'-'+n] || 0) < 2;
+    const use = (c,n) => { counts[c+'-'+n] = (counts[c+'-'+n]||0) + 1; };
+
+    const numGroups = randInt(cfg.minGroups, cfg.maxGroups);
+    let made = 0, guard = 0;
+    while (made < numGroups && guard < 300){
+      guard++;
+      const asRun = rand() < 0.5;
+      let candidate = null;
+
+      if (asRun){
+        const color = COLORS[randInt(0,3)];
+        const len = randInt(cfg.runLen[0], cfg.runLen[1]);
+        const start = randInt(1, 13-len+1);
+        const tiles = [];
+        for (let n=start; n<start+len; n++) tiles.push({color, number:n});
+        if (tiles.every(t => canUse(t.color, t.number))) candidate = tiles;
+      } else {
+        const number = randInt(1,13);
+        const size = randInt(cfg.groupSize[0], cfg.groupSize[1]);
+        const chosen = shuffle(COLORS.slice()).slice(0, size);
+        const tiles = chosen.map(c => ({color:c, number}));
+        if (tiles.every(t => canUse(t.color, t.number))) candidate = tiles;
+      }
+
+      if (candidate){
+        candidate.forEach(t => use(t.color, t.number));
+        candidate.forEach(t => pool.push({id: 't'+(tileId++), color:t.color, number:t.number}));
+        made++;
+      }
+    }
+    shuffle(pool);
+    return pool;
+  }
+
+  // ---------- global state ----------
+  let stageIndex = 0;
+  const stageTimes = [null, null, null];
+  let pool, tileById, hand, groups, selectedTile, solved, elapsed, timerHandle;
+
+  function loadStage(idx){
+    stageIndex = idx;
+    pool = generatePuzzle(idx);
+    tileById = {};
+    pool.forEach(t => tileById[t.id] = t);
+    hand = pool.map(t => t.id);
+    groups = [];
+    const initialGroupCount = Math.max(3, Math.ceil(pool.length/4) - 1);
+    for (let i=0;i<initialGroupCount;i++) groups.push([]);
+    selectedTile = null;
+    solved = false;
+    elapsed = 0;
+    clearStatus();
+    document.getElementById('timerLabel').textContent = STAGES[idx].name + ' 경과 시간';
+    document.getElementById('timer').textContent = '00:00';
+    stopTimer();
+    startTimer();
+    renderStageTrack();
+    render();
+  }
+
+  // ---------- rendering ----------
+  const rackEl = document.getElementById('rack');
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const stageTrackEl = document.getElementById('stageTrack');
+  const playAreaEl = document.getElementById('playArea');
+  const summaryEl = document.getElementById('summary');
+
+  function renderStageTrack(){
+    stageTrackEl.innerHTML = '';
+    STAGES.forEach((s, i) => {
+      const pill = document.createElement('div');
+      let cls = 'stage-pill';
+      if (i === stageIndex) cls += ' active';
+      else if (stageTimes[i] !== null) cls += ' done';
+      else if (i > stageIndex) cls += ' locked';
+      pill.className = cls;
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = s.name;
+      const t = document.createElement('span');
+      t.className = 't';
+      t.textContent = stageTimes[i] !== null ? formatTime(stageTimes[i]) : '--:--';
+      pill.appendChild(name);
+      pill.appendChild(t);
+      stageTrackEl.appendChild(pill);
+    });
+  }
+
+  function makeTileEl(id){
+    const t = tileById[id];
+    const el = document.createElement('div');
+    el.className = 'tile ' + t.color;
+    el.textContent = t.number;
+    if (id === selectedTile) el.classList.add('selected');
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onTileClick(id, findLocation(id));
+    });
+    return el;
+  }
+
+  function findLocation(id){
+    if (hand.includes(id)) return {type:'hand'};
+    for (let gi=0; gi<groups.length; gi++){
+      if (groups[gi].includes(id)) return {type:'group', index:gi};
+    }
+    return null;
+  }
+
+  function onTileClick(id, loc){
+    if (solved) return;
+    if (loc.type === 'group'){
+      groups[loc.index] = groups[loc.index].filter(x => x !== id);
+      hand.push(id);
+      selectedTile = null;
+      clearStatus();
+      render();
+      return;
+    }
+    selectedTile = (selectedTile === id) ? null : id;
+    render();
+  }
+
+  function onGroupClick(gi){
+    if (solved) return;
+    if (selectedTile){
+      hand = hand.filter(x => x !== selectedTile);
+      groups[gi].push(selectedTile);
+      selectedTile = null;
+      clearStatus();
+      render();
+    }
+  }
+
+  function addGroup(){
+    groups.push([]);
+    render();
+  }
+
+  function resetToRack(){
+    if (solved) return;
+    groups.forEach(g => { hand = hand.concat(g); });
+    groups = groups.map(() => []);
+    selectedTile = null;
+    clearStatus();
+    render();
+  }
+
+  function isValidMeld(ids){
+    if (ids.length < 3) return false;
+    const tiles = ids.map(id => tileById[id]);
+    const numbersSet = new Set(tiles.map(t => t.number));
+    if (numbersSet.size === 1){
+      const colors = tiles.map(t => t.color);
+      if (colors.length > 4) return false;
+      return new Set(colors).size === colors.length;
+    }
+    const colorsSet = new Set(tiles.map(t => t.color));
+    if (colorsSet.size === 1){
+      const nums = tiles.map(t => t.number).sort((a,b) => a-b);
+      for (let i=1;i<nums.length;i++){
+        if (nums[i] !== nums[i-1] + 1) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function checkSolution(){
+    const nonEmpty = groups.map((g,i) => ({g,i})).filter(x => x.g.length > 0);
+    if (hand.length > 0){
+      showStatus('warn', '아직 받침대에 타일이 ' + hand.length + '장 남아 있어요. 모든 타일을 그룹에 배치해 주세요.');
+      render();
+      return;
+    }
+    let allValid = true;
+    const invalidIdx = [];
+    nonEmpty.forEach(x => {
+      if (!isValidMeld(x.g)){ allValid = false; invalidIdx.push(x.i); }
+    });
+    if (!allValid){
+      showStatus('warn', invalidIdx.length + '개 그룹이 아직 규칙에 맞지 않아요. (같은 숫자·다른 색 3장 이상, 또는 같은 색·연속 숫자 3장 이상)');
+      render(invalidIdx);
+      return;
+    }
+    solved = true;
+    stopTimer();
+    stageTimes[stageIndex] = elapsed;
+    renderStageTrack();
+
+    if (stageIndex < STAGES.length - 1){
+      showStatus('ok', STAGES[stageIndex].name + ' 완료! 기록 ' + formatTime(elapsed) + '. 다음 단계로 이동합니다...');
+      render();
+      setTimeout(() => loadStage(stageIndex + 1), 1200);
+    } else {
+      showStatus('ok', '3단계 완료! 기록 ' + formatTime(elapsed));
+      render();
+      setTimeout(showSummary, 1000);
+    }
+  }
+
+  function showSummary(){
+    playAreaEl.style.display = 'none';
+    summaryEl.classList.add('show');
+    const rowsEl = document.getElementById('summaryRows');
+    rowsEl.innerHTML = '';
+    let total = 0;
+    STAGES.forEach((s, i) => {
+      total += stageTimes[i];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<div class="n">' + s.name + '</div><div class="v">' + formatTime(stageTimes[i]) + '</div>';
+      rowsEl.appendChild(row);
+    });
+    const totalRow = document.createElement('div');
+    totalRow.className = 'row total';
+    totalRow.innerHTML = '<div class="n">총 기록</div><div class="v">' + formatTime(total) + '</div>';
+    rowsEl.appendChild(totalRow);
+  }
+
+  function render(invalidIdx){
+    invalidIdx = invalidIdx || [];
+    rackEl.innerHTML = '';
+    hand.forEach(id => rackEl.appendChild(makeTileEl(id)));
+
+    boardEl.innerHTML = '';
+    groups.forEach((g, gi) => {
+      const box = document.createElement('div');
+      box.className = 'group';
+      if (selectedTile) box.classList.add('selectable');
+      if (invalidIdx.includes(gi)) box.classList.add('invalid');
+      else if (solved && g.length>0) box.classList.add('valid');
+
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = '그룹 ' + (gi+1);
+      box.appendChild(tag);
+
+      g.forEach(id => box.appendChild(makeTileEl(id)));
+      box.addEventListener('click', () => onGroupClick(gi));
+      boardEl.appendChild(box);
+    });
+  }
+
+  function clearStatus(){
+    statusEl.className = 'status';
+    statusEl.textContent = '';
+  }
+  function showStatus(kind, msg){
+    statusEl.className = 'status show ' + kind;
+    statusEl.textContent = msg;
+  }
+
+  // ---------- timer ----------
+  function formatTime(sec){
+    const m = String(Math.floor(sec/60)).padStart(2,'0');
+    const s = String(sec%60).padStart(2,'0');
+    return m + ':' + s;
+  }
+  function startTimer(){
+    timerHandle = setInterval(() => {
+      elapsed++;
+      document.getElementById('timer').textContent = formatTime(elapsed);
+    }, 1000);
+  }
+  function stopTimer(){
+    clearInterval(timerHandle);
+  }
+
+  // ---------- wire up ----------
+  document.getElementById('addGroupBtn').addEventListener('click', addGroup);
+  document.getElementById('resetBtn').addEventListener('click', resetToRack);
+  document.getElementById('checkBtn').addEventListener('click', checkSolution);
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    stageTimes[0] = stageTimes[1] = stageTimes[2] = null;
+    summaryEl.classList.remove('show');
+    playAreaEl.style.display = '';
+    loadStage(0);
+  });
+
+  loadStage(0);
+})();
+</script>
+</body>
+</html>
